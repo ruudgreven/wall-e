@@ -10,7 +10,7 @@ class Servo:
     min_angle = 0
     max_angle = 180
     current_angle = 0.001
-    
+     
     pin = -1
     begin_limit = 0
     end_limit = 180

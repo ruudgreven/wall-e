@@ -1,6 +1,9 @@
 from servo import Servo
+from motor import Motor
+from sys import stdin, stdout
 from time import sleep
-from machine import Pin,UART
+from machine import Pin,UART,PWM
+import select
 
 HEAD_ROTATION = 0
 NECK_TOP = 1
@@ -12,24 +15,29 @@ ARM_RIGHT = 6
 EYEBROW_LEFT = 7
 EYEBROW_RIGHT = 8
 
-# Initialize servos
-servos = []
-
-# Pol the serial port
-uart = machine.UART(0, baudrate=115200, tx=Pin(16), rx=Pin(17))
+# Set up the poll object
+poll_obj = select.poll()
+poll_obj.register(stdin, select.POLLIN)
 
 # Add Servos (id, Servo(port, min_duty, max_duty, begin_limit, end_limit))
-servos.insert(HEAD_ROTATION, Servo(0, 1639, 8192, 60, 120, False))	# Head turns max 60 degrees. 60 is look right, 120 is look left
-servos.insert(NECK_TOP, Servo(1, 1639, 8192, 0, 170, False))		# Neck turns max 170 degrees. 0 is neck down, 170 is high
-servos.insert(NECK_BOTTOM, Servo(2, 1639, 8192, 0, 180,False))
-servos.insert(EYE_LEFT, Servo(3, 1639, 8192, 0, 180, False))
-servos.insert(EYE_RIGHT, Servo(4, 1639, 8192, 0, 180, True))		
-servos.insert(ARM_LEFT, Servo(5, 1639, 8192, 0, 110, True))		# Arm turns max 110 degrees. 0 is arms down. 110 is arm up
-servos.insert(ARM_RIGHT, Servo(6, 1639, 8192, 0, 110, False))		# Arm turns max 110 degrees. 0 is arms down. 110 is arm up
-servos.insert(EYEBROW_LEFT, Servo(7, 1800, 8000, 0, 80, False))
-servos.insert(EYEBROW_RIGHT, Servo(8, 1800, 8000, 0, 80, False))
+servos = []
+servos.insert(HEAD_ROTATION, Servo(15, 1639, 8192, 60, 120, False))	# Head turns max 60 degrees. 60 is look right, 120 is look left
+servos.insert(NECK_TOP, Servo(14, 1639, 8192, 0, 170, False))		# Neck turns max 170 degrees. 0 is neck down, 170 is high
+servos.insert(NECK_BOTTOM, Servo(13, 1639, 8192, 0, 180,False))
+servos.insert(EYE_LEFT, Servo(12, 1639, 8192, 0, 180, False))
+servos.insert(EYE_RIGHT, Servo(11, 1639, 8192, 0, 180, True))		
+servos.insert(ARM_LEFT, Servo(10, 1639, 8192, 0, 110, True))		# Arm turns max 110 degrees. 0 is arms down. 110 is arm up
+servos.insert(ARM_RIGHT, Servo(9, 1639, 8192, 0, 110, False))		# Arm turns max 110 degrees. 0 is arms down. 110 is arm up
+servos.insert(EYEBROW_LEFT, Servo(8, 1800, 8000, 0, 80, False))
+servos.insert(EYEBROW_RIGHT, Servo(7, 1800, 8000, 0, 80, False))
+
+# Add motors
+motorLeft = Motor(Pin(18), Pin(19), Pin(16), False, 25000,45000)
+motorRight = Motor(Pin(20), Pin(21), Pin(17), True, 51000, 71000)
 
 def resetAll():
+    motorLeft.stop()
+    motorRight.stop()
     for servo in servos:
         if (servo.pin == HEAD_ROTATION):
             servo.move(90)
@@ -41,72 +49,108 @@ def rotateServo(servo, angle):
 
 try:
     resetAll()
+
     print("Start listening")
     
     while True:
         try:
+            poll_results = poll_obj.poll(1) # Wait 1 microsecond
             # Receive data
-            if uart.any():
-                received_data = uart.readline()
-                message = received_data.decode('utf-8')
+            if poll_results:
+                received_data = stdin.readline().rstrip()
+                message = received_data
+                if (message==""):
+                    continue
                 
                 # Value input:
                 # servo:<servo_name>:angle
                 command = message.split(":")
-                if (len(command)==3):            
-                    action = command[0]
+
+                action = command[0]
+                
+                if (action=="panic"):
+                    resetAll();
+                    stdout.write("ok:stopped all\r\n")
+
+                elif (action=="servo" and len(command)==3):
                     servoname = command[1]
                     angle = float(command[2])
+                
+                    if (servoname=="head_rotation"):
+                        rotateServo(servos[HEAD_ROTATION],angle)
+                        stdout.write("ok:head_rotation\r\n")
+                        
+                    elif (servoname=="neck_top"):
+                        rotateServo(servos[NECK_TOP],angle)
+                        stdout.write("ok:neck_top\r\n")
+                        
+                    elif (servoname=="neck_bottom"):
+                        rotateServo(servos[NECK_BOTTOM],angle)
+                        stdout.write("ok:neck_bottom\r\n")
+                        
+                    elif (servoname=="eye_left"):
+                        rotateServo(servos[EYE_LEFT],angle)
+                        stdout.write("ok:eye_left\r\n")
+                        
+                    elif (servoname=="eye_right"):
+                        rotateServo(servos[EYE_RIGHT],angle)
+                        stdout.write("ok:eye_right\r\n")
+
+                    elif (servoname=="arm_left"):
+                        rotateServo(servos[ARM_LEFT],angle)
+                        stdout.write("ok:arm_left\r\n")
+                        
+                    elif (servoname=="arm_right"):
+                        rotateServo(servos[ARM_RIGHT],angle)
+                        stdout.write("ok:arm_right\r\n")
+
+                    elif (servoname=="eyebrow_left"):
+                        rotateServo(servos[EYEBROW_LEFT],angle)
+                        stdout.write("ok:eyebrow_left\r\n")
+
+                    elif (servoname=="eyebrow_right"):
+                        rotateServo(servos[EYEBROW_RIGHT],angle)
+                        stdout.write("ok:eyebrow_right\r\n")
+                elif (action=="motor" and len(command)==4):
+                    motorname = command[1]
+                    direction = command[2]
+                    speed = float(command[3])
                     
-                    if (action=="servo"):
-                        if (servoname=="head_rotation"):
-                            rotateServo(servos[HEAD_ROTATION],angle)
-                            uart.write("ok:head_rotation".encode('utf-8'))
-                            
-                        if (servoname=="neck_top"):
-                            rotateServo(servos[NECK_TOP],angle)
-                            uart.write("ok:neck_top")
-                            
-                        if (servoname=="neck_bottom"):
-                            rotateServo(servos[NECK_BOTTOM],angle)
-                            uart.write("ok:neck_bottom")
-                            
-                        if (servoname=="eye_left"):
-                            rotateServo(servos[EYE_LEFT],angle)
-                            uart.write("ok:eye_left")
-                            
-                        if (servoname=="eye_right"):
-                            rotateServo(servos[EYE_RIGHT],angle)
-                            uart.write("ok:eye_right")
-
-                        if (servoname=="arm_left"):
-                            rotateServo(servos[ARM_LEFT],angle)
-                            uart.write("ok:arm_left")
-                            
-                        if (servoname=="arm_right"):
-                            rotateServo(servos[ARM_RIGHT],angle)
-                            uart.write("ok:arm_right")
-
-                        if (servoname=="eyebrow_left"):
-                            rotateServo(servos[EYEBROW_LEFT],angle)
-                            uart.write("ok:eyebrow_left")
-
-                        if (servoname=="eyebrow_right"):
-                            rotateServo(servos[EYEBROW_RIGHT],angle)
-                            uart.write("ok:eyebrow_right")
-                    
-                    else:
-                        uart.write("error:unknown action")
+                    if (motorname=="left" or motorname=="both"):
+                        if (direction=="forward"):
+                            motorLeft.forward()
+                            stdout.write("ok:motor left forward")
+                        elif (direction=="backward"):
+                            motorLeft.backward()
+                            stdout.write("ok:motor left backward")
+                        elif (direction=="stop"):
+                            motorLeft.stop()
+                            stdout.write("ok:motor left stop")
+                        motorLeft.setSpeed(speed)
+    
+                    if (motorname=="right" or motorname=="both"):
+                        if (direction=="forward"):
+                            motorRight.forward()
+                            stdout.write("ok:motor right forward")
+                        elif (direction=="backward"):
+                            motorRight.backward()
+                            stdout.write("ok:motor right backward")
+                        elif (direction=="stop"):
+                            motorRight.stop()
+                            stdout.write("ok:motor right stop")
+                        motorRight.setSpeed(speed)
+                        
                 else:
-                    uart.write("error:Unknown command")
-                    
-            sleep(0.05)
-        except:
-            uart.write("error:exception thrown")
-            print("exception thrown")
+                    stdout.write("error:unknown action\r\n")
+
+        except Exception as error:
+            stdout.write("error:exception thrown:" + repr(error) + "\r\n")
+            resetAll();
             sleep(1)
         
 except KeyboardInterrupt:
-    print("Keyboard interrupt")
+    print("Keyboard interrupt\r\n")
+    motorLeft.stop()
+    motorRight.stop()
     
 
