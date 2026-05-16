@@ -18,19 +18,19 @@ class Motor:
         
     def forward(self):
         if (self.reverse == False):
-            self.in1.value(0)
-            self.in2.value(1)
-        else:
             self.in1.value(1)
             self.in2.value(0)
+        else:
+            self.in1.value(0)
+            self.in2.value(1)
 
     def backward(self):
         if (self.reverse == False):
-            self.in1.value(1)
-            self.in2.value(0)
-        else:
             self.in1.value(0)
             self.in2.value(1)
+        else:
+            self.in1.value(1)
+            self.in2.value(0)
                       
     def stop(self):
         self.in1.value(0)
