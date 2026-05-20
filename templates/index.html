@@ -1,0 +1,83 @@
+<html>
+    <head>
+        <title>Wall-E Controller</title>
+        <script src="static/controller.js"></script>
+        <link rel="stylesheet" href="static/style.css"> 
+    </head>
+    <h1>Wall-E Controller</h1>
+
+    <div class="flex-container">
+        <div class="flex-item">
+            <h2>Sound and emotions</h2>
+        </div>
+        <div class="flex-item">
+            <h2>Motion control</h2>
+        </div>
+        <div class="flex-item">
+            <h2>Driving controls</h2>
+            
+            <div class="drivingbutton" id="drive-forward">
+                <img src="static/images/icons/forward.svg" style="height:120px; color:#000;" class="iconcolor"/>
+            </div>
+            <div class="drivingbutton" style="width: 33%; float: left" id="turn-left">
+                <img src="static/images/icons/left.svg" style="height:80px; color:#000;" class="iconcolor"/>
+            </div>
+            <div class="drivingbutton" style="width: 33%; float: left" id="stop">
+                <img src="static/images/icons/stop.svg" style="height:80px; color:#000;" class="iconcolor"/>
+            </div>
+            <div class="drivingbutton" style="width: 33%; float: left" id="turn-right">
+                <img src="static/images/icons/right.svg" style="height:80px; color:#000;" class="iconcolor"/>
+            </div>
+            <div class="drivingbutton" id="drive-backward">
+                <img src="static/images/icons/backward.svg" style="height:120px; color:#000;" class="iconcolor"/>
+            </div>
+        </div>
+        <div class="flex-item">Column 4</div>
+        <div class="flex-item">Column 5</div>
+        <div class="flex-item">Column 6</div>
+    </div>
+
+    <script>
+        document.querySelector("#drive-forward").addEventListener("touchstart", function(e) {
+            e.preventDefault()
+            drive('forward');
+            e.returnValue = false;
+        }, false)
+
+        document.querySelector("#drive-backward").addEventListener("touchstart", function(e) {
+            e.preventDefault()
+            drive('backward');
+            e.returnValue = false;
+        }, false)
+
+        document.querySelector("#stop").addEventListener("touchstart", function(e) {
+            e.preventDefault()
+            stop();
+            e.returnValue = false;
+        }, false)
+
+        document.querySelector("#turn-left").addEventListener("touchstart", function(e) {
+            e.preventDefault()
+            turn('left');
+            e.returnValue = false;
+        }, false)
+
+        document.querySelector("#turn-right").addEventListener("touchstart", function(e) {
+            e.preventDefault()
+            turn('right');
+            e.returnValue = false;
+        }, false)
+
+        const drivingbuttons = document.querySelectorAll(".drivingbutton");
+        drivingbuttons.forEach((drivingbutton) => {
+            drivingbutton.addEventListener("touchend", function(e) {
+                e.preventDefault()
+                stop();
+                e.returnValue = false;
+            }, false)
+        });
+    </script>
+</html>
+
+
+

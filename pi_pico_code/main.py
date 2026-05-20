@@ -22,15 +22,15 @@ poll_obj.register(stdin, select.POLLIN)
 
 # Add Servos (id, Servo(port, min_duty, max_duty, begin_limit, end_limit))
 servos = []
-servos.insert(HEAD_ROTATION, Servo(15, 1639, 8192, 60, 120, False))	# Head turns max 60 degrees. 60 is look right, 120 is look left
-servos.insert(NECK_TOP, Servo(14, 1639, 8192, 0, 170, False))		# Neck turns max 170 degrees. 0 is neck down, 170 is high
-servos.insert(NECK_BOTTOM, Servo(13, 1639, 8192, 0, 150,False))
-servos.insert(EYE_LEFT, Servo(12, 1639, 8192, 0, 40, False))
-servos.insert(EYE_RIGHT, Servo(11, 1639, 8192, 0, 40, True))		
+servos.insert(HEAD_ROTATION, Servo(15, 1639, 8192, 30, 150, False))	# Head turns max 60 degrees. 60 is look right, 120 is look left
+servos.insert(NECK_TOP, Servo(14, 1639, 7500, 0, 110, False))		# BUG: Lijkt in de kramp te schieten bij hogere PWM waardes
+servos.insert(NECK_BOTTOM, Servo(13, 1639, 8192, 0, 150,False))		
+servos.insert(EYE_LEFT, Servo(12, 1639, 8192, 0, 35, False))
+servos.insert(EYE_RIGHT, Servo(11, 1639, 8192, 0, 35, True))		
 servos.insert(ARM_LEFT, Servo(10, 1639, 8192, 0, 110, True))		# Arm turns max 110 degrees. 0 is arms down. 110 is arm up
 servos.insert(ARM_RIGHT, Servo(9, 1639, 8192, 0, 110, False))		# Arm turns max 110 degrees. 0 is arms down. 110 is arm up
-servos.insert(EYEBROW_LEFT, Servo(8, 1800, 8000, 0, 80, True))
-servos.insert(EYEBROW_RIGHT, Servo(7, 1800, 8000, 0, 80, False))
+servos.insert(EYEBROW_LEFT, Servo(8, 1800, 7600, 0, 80, True))
+servos.insert(EYEBROW_RIGHT, Servo(7, 1800, 7600, 0, 80, False))
 
 # Add motors
 motorLeft = Motor(Pin(18), Pin(19), Pin(16), False, 25000,45000)
@@ -39,14 +39,29 @@ motorRight = Motor(Pin(20), Pin(21), Pin(17), True, 51000, 71000)
 def resetAll():
     motorLeft.stop()
     motorRight.stop()
-    for servo in servos:
-        if (servo.pin == HEAD_ROTATION):
-            servo.move(90)
-        else:
-            servo.move(0)
+    
+    # Go to initial positions
+    servos[HEAD_ROTATION].move(90)
+    servos[NECK_TOP].move(0)
+    #servos[NECK_BOTTOM].move(0)
+    servos[EYE_LEFT].move(20)
+    servos[EYE_RIGHT].move(20)
+    servos[ARM_LEFT].move(0)
+    servos[ARM_RIGHT].move(0)
+    servos[EYEBROW_LEFT].move(0)
+    servos[EYEBROW_RIGHT].move(0)
+    
+    sleep(0.5)
+    
+    # Do a small eyebrow blink to show that we are ready
+    servos[EYEBROW_LEFT].move(40)
+    servos[EYEBROW_RIGHT].move(40)
+    sleep(0.5)
+    servos[EYEBROW_LEFT].move(0)
+    servos[EYEBROW_RIGHT].move(0)
     
 def rotateServo(servo, angle):
-    servo.move(angle)
+    servo.startAnimation(angle,200)
 
 def animateServo(servo, angle, duration):
     servo.startAnimation(angle,duration)
@@ -62,7 +77,7 @@ try:
             servo.animate()
         
         try:
-            poll_results = poll_obj.poll(1) # Wait 1 microsecond
+            poll_results = poll_obj.poll(10) # Wait 10 microseconds
             # Receive data
             if poll_results:
                 received_data = stdin.readline().rstrip()
@@ -118,7 +133,13 @@ try:
                     elif (servoname=="arm_right"):
                         rotateServo(servos[ARM_RIGHT],angle)
                         stdout.write("ok:arm_right\r\n")
-
+                    
+                    elif (servoname=="arms"):
+                        rotateServo(servos[ARM_LEFT],angle)
+                        rotateServo(servos[ARM_RIGHT],angle)
+                        stdout.write("ok:arm_left\r\n")
+                        stdout.write("ok:arm_right\r\n")
+                        
                     elif (servoname=="eyebrow_left"):
                         rotateServo(servos[EYEBROW_LEFT],angle)
                         stdout.write("ok:eyebrow_left\r\n")
@@ -127,6 +148,15 @@ try:
                         rotateServo(servos[EYEBROW_RIGHT],angle)
                         stdout.write("ok:eyebrow_right\r\n")
                         
+                    elif (servoname=="eyebrows"):
+                        rotateServo(servos[EYEBROW_LEFT],angle)
+                        rotateServo(servos[EYEBROW_RIGHT],angle)
+                        stdout.write("ok:eyebrow_left\r\n")
+                        stdout.write("ok:eyebrow_right\r\n")
+                    
+                    else:
+                        stdout.write("error:unknown servoname\r\n")
+                        
                 # servo:<servo_name>:angle:duration, give the servo a future time
                 elif (action=="servo" and len(command)==4):
                     servoname = command[1]
@@ -134,7 +164,7 @@ try:
                     duration = float(command[3])
                     
                     if (servoname=="head_rotation"):
-                        animateServo(servos[HEAD_ROTATION],angle, duratiom)
+                        animateServo(servos[HEAD_ROTATION],angle, duration)
                         stdout.write("ok:head_rotation\r\n")
                     
                     elif (servoname=="neck_top"):
@@ -153,6 +183,12 @@ try:
                         animateServo(servos[EYE_RIGHT],angle, duration)
                         stdout.write("ok:eye_right\r\n")   
                     
+                    elif (servoname=="eyes"):
+                        animateServo(servos[EYE_LEFT],angle, duration)
+                        animateServo(servos[EYE_RIGHT],angle, duration)
+                        stdout.write("ok:eye_left\r\n")
+                        stdout.write("ok:eye_right\r\n")
+                        
                     elif (servoname=="arm_left"):
                         animateServo(servos[ARM_LEFT],angle, duration)
                         stdout.write("ok:arm_left\r\n")
@@ -169,6 +205,15 @@ try:
                         animateServo(servos[EYEBROW_RIGHT],angle, duration)
                         stdout.write("ok:eyebrow_right\r\n")
                         
+                    elif (servoname=="eyebrows"):
+                        animateServo(servos[EYEBROW_LEFT],angle, duration)
+                        animateServo(servos[EYEBROW_RIGHT],angle, duration)
+                        stdout.write("ok:eyebrow_left\r\n")
+                        stdout.write("ok:eyebrow_right\r\n")
+                        
+                    else:
+                        stdout.write("error:unknown servoname\r\n")
+                        
                 elif (action=="motor" and len(command)==4):
                     motorname = command[1]
                     direction = command[2]
@@ -184,8 +229,11 @@ try:
                         elif (direction=="stop"):
                             motorLeft.stop()
                             stdout.write("ok:motor left stop")
-                        motorLeft.setSpeed(speed)
+                        else:
+                            stdout.write("error:unknown direction\r\n")
     
+                        motorLeft.setSpeed(speed)
+                        
                     if (motorname=="right" or motorname=="both"):
                         if (direction=="forward"):
                             motorRight.forward()
@@ -196,8 +244,14 @@ try:
                         elif (direction=="stop"):
                             motorRight.stop()
                             stdout.write("ok:motor right stop")
+                        else:
+                            stdout.write("error:unknown direction\r\n")
+                        
                         motorRight.setSpeed(speed)
                         
+                    else:
+                            stdout.write("error:unknown motor name\r\n")
+                            
                 else:
                     stdout.write("error:unknown action\r\n")
 

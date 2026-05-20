@@ -49,7 +49,7 @@ class Servo:
             self.animation_endangle = 0
             
         # Normalize angle
-        angle = round(angle, 2)
+        angle = round(angle, 1)
         if (self.reverse):
             angle = self.end_limit - angle
         
